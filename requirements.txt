@@ -1,0 +1,16 @@
+streamlit
+llama-index-core
+llama-index-llms-groq
+llama-index-embeddings-huggingface
+llama-index-vector-stores-chroma
+llama-index-readers-file
+llama-index-postprocessor-flag-embedding-reranker
+llama-index-core
+python-dotenv
+chromadb
+unstructured
+pypdf
+pdf2image
+pdfminer.six
+docx2txt
+pysqlite3-binary
