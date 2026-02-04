@@ -5,7 +5,7 @@ import uuid
 from src.backend import AdvancedRAG
 
 st.set_page_config(page_title="Q/A Bot", layout="wide")
-st.markdown("<h1 style='text-align: center;'>Q/A Bot (Speed Mode)</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>Q/A Bot</h1>", unsafe_allow_html=True)
 
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
@@ -13,13 +13,11 @@ if "session_id" not in st.session_state:
     os.makedirs(os.path.join(base_dir, st.session_state.session_id, "files"), exist_ok=True)
     os.makedirs(os.path.join(base_dir, st.session_state.session_id, "db"), exist_ok=True)
 
-# --- CACHING (Crucial for Speed) ---
 @st.cache_resource
 def get_rag_engine():
     return AdvancedRAG()
 
 rag_engine = get_rag_engine()
-# -----------------------------------
 
 if "messages" not in st.session_state:
     st.session_state.messages = []

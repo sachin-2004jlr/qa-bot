@@ -29,14 +29,14 @@ load_dotenv()
 
 class AdvancedRAG:
     def __init__(self):
-        # 1. FAST EMBEDDINGS (MiniLM is 10x faster than BGE-Large)
+        # 1. EMBEDDING: MiniLM (Fast & Reliable)
         self.embed_model = HuggingFaceEmbedding(
             model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
         
-        # 2. FAST LLM (Llama 3 8B is snappy on Groq)
+        # 2. LLM: Llama 3.3 70B (High Intelligence)
         self.llm = Groq(
-            model="llama3-8b-8192", 
+            model="llama-3.3-70b-versatile", 
             api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.1
         )
@@ -46,7 +46,7 @@ class AdvancedRAG:
 
     def process_documents(self, file_dir, db_path):
         try:
-            # SimpleDirectoryReader defaults to pypdf (Instant)
+            # SimpleDirectoryReader handles .pdf, .docx, .txt automatically
             reader = SimpleDirectoryReader(
                 input_dir=file_dir,
                 recursive=True
@@ -55,9 +55,14 @@ class AdvancedRAG:
 
             if not documents:
                 return "No documents found."
+            
+            # Filter empty docs
+            documents = [doc for doc in documents if doc.text and len(doc.text.strip()) > 0]
 
-            # STANDARD CHUNKING (Instant)
-            # Replaces slow Semantic Chunking
+            if not documents:
+                return "No valid text found in documents."
+
+            # CHUNKING: Standard Sentence Splitter
             splitter = SentenceSplitter(
                 chunk_size=1024,
                 chunk_overlap=200
@@ -92,11 +97,10 @@ class AdvancedRAG:
                 embed_model=self.embed_model
             )
 
-            # Standard Retrieval (Fast)
-            # Reranker removed to save CPU
+            # RETRIEVAL: Top 10 Chunks
             retriever = VectorIndexRetriever(
                 index=index,
-                similarity_top_k=5
+                similarity_top_k=10
             )
 
             query_engine = RetrieverQueryEngine(
