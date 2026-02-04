@@ -8,7 +8,6 @@ except ImportError:
 
 import os
 import shutil
-import re
 from dotenv import load_dotenv
 
 from llama_index.core import (
@@ -29,14 +28,14 @@ load_dotenv()
 
 class AdvancedRAG:
     def __init__(self):
-        # 1. LIGHTWEIGHT EMBEDDING (Runs fast on CPU)
+        # 1. EMBEDDING: MiniLM (Fast & Reliable)
         self.embed_model = HuggingFaceEmbedding(
             model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
         
-        # 2. FASTEST LLM (Llama 3 8B is instant)
+        # 2. LLM: Switched to Llama 3.3 70B (Active & Supported)
         self.llm = Groq(
-            model="llama3-8b-8192", 
+            model="llama-3.3-70b-versatile",  # <--- UPDATED HERE
             api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.1
         )
@@ -46,8 +45,7 @@ class AdvancedRAG:
 
     def process_documents(self, file_dir, db_path):
         try:
-            # SimpleDirectoryReader uses pypdf automatically (Fast)
-            # when 'unstructured' is NOT installed.
+            # SimpleDirectoryReader automatically handles .pdf, .docx, .txt
             reader = SimpleDirectoryReader(
                 input_dir=file_dir,
                 recursive=True
@@ -56,8 +54,14 @@ class AdvancedRAG:
 
             if not documents:
                 return "No documents found."
+            
+            # Filter empty docs to prevent crashes
+            documents = [doc for doc in documents if doc.text and len(doc.text.strip()) > 0]
 
-            # Standard Splitter (Instant)
+            if not documents:
+                return "No valid text found in documents."
+
+            # CHUNKING: Standard Sentence Splitter (Instant)
             splitter = SentenceSplitter(
                 chunk_size=1024,
                 chunk_overlap=200
@@ -92,11 +96,10 @@ class AdvancedRAG:
                 embed_model=self.embed_model
             )
 
-            # Basic Retrieval (Fast)
-            # We removed the Reranker to save CPU time.
+            # RETRIEVAL: Top 10 Chunks
             retriever = VectorIndexRetriever(
                 index=index,
-                similarity_top_k=5
+                similarity_top_k=10
             )
 
             query_engine = RetrieverQueryEngine(
