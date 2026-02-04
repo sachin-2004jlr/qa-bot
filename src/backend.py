@@ -33,9 +33,9 @@ class AdvancedRAG:
             model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
         
-        # 2. LLM: Switched to Llama 3.3 70B (Active & Supported)
+        # 2. LLM: UPDATED to Llama 3.3 70B (The dead '8b' model is gone)
         self.llm = Groq(
-            model="llama-3.3-70b-versatile",  # <--- UPDATED HERE
+            model="llama-3.3-70b-versatile",  # <--- THIS IS THE FIX
             api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.1
         )
@@ -45,7 +45,7 @@ class AdvancedRAG:
 
     def process_documents(self, file_dir, db_path):
         try:
-            # SimpleDirectoryReader automatically handles .pdf, .docx, .txt
+            # SimpleDirectoryReader handles .pdf, .docx, .txt
             reader = SimpleDirectoryReader(
                 input_dir=file_dir,
                 recursive=True
