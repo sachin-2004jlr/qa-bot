@@ -29,14 +29,14 @@ load_dotenv()
 
 class AdvancedRAG:
     def __init__(self):
-        # 1. EMBEDDING: MiniLM (Fast & Reliable)
+        # 1. LIGHTWEIGHT EMBEDDING (Runs fast on CPU)
         self.embed_model = HuggingFaceEmbedding(
             model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
         
-        # 2. LLM: Llama 3.3 70B (High Intelligence)
+        # 2. FASTEST LLM (Llama 3 8B is instant)
         self.llm = Groq(
-            model="llama-3.3-70b-versatile", 
+            model="llama3-8b-8192", 
             api_key=os.getenv("GROQ_API_KEY"),
             temperature=0.1
         )
@@ -46,7 +46,8 @@ class AdvancedRAG:
 
     def process_documents(self, file_dir, db_path):
         try:
-            # SimpleDirectoryReader handles .pdf, .docx, .txt automatically
+            # SimpleDirectoryReader uses pypdf automatically (Fast)
+            # when 'unstructured' is NOT installed.
             reader = SimpleDirectoryReader(
                 input_dir=file_dir,
                 recursive=True
@@ -55,14 +56,8 @@ class AdvancedRAG:
 
             if not documents:
                 return "No documents found."
-            
-            # Filter empty docs
-            documents = [doc for doc in documents if doc.text and len(doc.text.strip()) > 0]
 
-            if not documents:
-                return "No valid text found in documents."
-
-            # CHUNKING: Standard Sentence Splitter
+            # Standard Splitter (Instant)
             splitter = SentenceSplitter(
                 chunk_size=1024,
                 chunk_overlap=200
@@ -97,10 +92,11 @@ class AdvancedRAG:
                 embed_model=self.embed_model
             )
 
-            # RETRIEVAL: Top 10 Chunks
+            # Basic Retrieval (Fast)
+            # We removed the Reranker to save CPU time.
             retriever = VectorIndexRetriever(
                 index=index,
-                similarity_top_k=10
+                similarity_top_k=5
             )
 
             query_engine = RetrieverQueryEngine(
