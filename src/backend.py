@@ -3,13 +3,14 @@ import os
 import shutil
 from dotenv import load_dotenv
 
-# --- Streamlit Cloud SQLite Fix ---
+# --- CLOUD DATABASE FIX ---
+# This forces the system to use the correct SQLite version on Streamlit Cloud
 try:
     __import__('pysqlite3')
     sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 except ImportError:
     pass
-# ----------------------------------
+# --------------------------
 
 from llama_index.core import (
     VectorStoreIndex, 
@@ -29,18 +30,13 @@ load_dotenv()
 
 class AdvancedRAG:
     def __init__(self):
-        # 1. EMBEDDING: Load once (Heavy operation, but shared safely)
-        # We use MiniLM because it is fast and CPU-friendly for free cloud
+        # 1. EMBEDDING: Load once (Heavy operation)
         self.embed_model = HuggingFaceEmbedding(
             model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
-        # Set embedding model globally
         Settings.embed_model = self.embed_model
 
     def process_documents(self, file_dir, db_path):
-        """
-        Processes documents and creates a USER-SPECIFIC ChromaDB.
-        """
         try:
             reader = SimpleDirectoryReader(
                 input_dir=file_dir,
@@ -59,7 +55,7 @@ class AdvancedRAG:
             # Chunking
             splitter = SentenceSplitter(chunk_size=1024, chunk_overlap=200)
             
-            # Database Connection (ISOLATED via db_path)
+            # Database Connection
             chroma_client = chromadb.PersistentClient(path=db_path)
             chroma_collection = chroma_client.get_or_create_collection("user_data")
             
@@ -79,22 +75,16 @@ class AdvancedRAG:
             return f"Error: {str(e)}"
 
     def query(self, query_text, db_path, model_name):
-        """
-        Retrieves context and generates answer using the SELECTED Model.
-        """
         try:
             # 2. LLM: Initialize dynamically based on user selection
-            # This ensures the generation step uses the specific model requested
             llm = Groq(
                 model=model_name,
                 api_key=os.getenv("GROQ_API_KEY"),
-                temperature=0.3 # Slightly creative but focused
+                temperature=0.1
             )
-            
-            # Force LlamaIndex to use this specific LLM for this query
             Settings.llm = llm
 
-            # Connect to the User's specific DB
+            # Connect to DB
             chroma_client = chromadb.PersistentClient(path=db_path)
             chroma_collection = chroma_client.get_or_create_collection("user_data")
             vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
@@ -104,13 +94,12 @@ class AdvancedRAG:
                 embed_model=self.embed_model
             )
 
-            # Retrieve top 5 most relevant chunks (Context)
+            # Retrieve top 5 chunks
             retriever = VectorIndexRetriever(
                 index=index,
                 similarity_top_k=5
             )
 
-            # The Query Engine combines: Retriever + LLM (Generator)
             query_engine = RetrieverQueryEngine(
                 retriever=retriever
             )
