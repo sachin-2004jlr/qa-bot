@@ -91,7 +91,8 @@ rag_engine = get_rag_engine()
 # -----------------------------------------------------------------------------
 with st.sidebar:
     # --- NEW CHAT BUTTON ---
-    if st.button("➕ New Chat", type="primary", use_container_width=True):
+    # Removed "➕" icon
+    if st.button("New Chat", type="primary", use_container_width=True):
         if st.session_state.messages:
             st.session_state.chat_history.append({
                 "id": st.session_state.session_id,
@@ -112,7 +113,8 @@ with st.sidebar:
     st.header("Chat History")
     
     for i, chat in enumerate(reversed(st.session_state.chat_history)):
-        if st.button(f"📄 {chat['title']}", key=f"hist_{chat['id']}"):
+        # Removed "📄" icon
+        if st.button(f"{chat['title']}", key=f"hist_{chat['id']}"):
             if st.session_state.messages and st.session_state.session_id != chat['id']:
                  st.session_state.chat_history.append({
                     "id": st.session_state.session_id,
@@ -131,11 +133,12 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # --- DOWNLOAD SECTION (NEW) ---
+    # --- DOWNLOAD SECTION ---
     if st.session_state.messages:
         docx_file = generate_document(st.session_state.messages)
+        # Removed "📥" icon
         st.download_button(
-            label="📥 Download Conversation (Word)",
+            label="Download Conversation (DOCX)",
             data=docx_file,
             file_name=f"chat_log_{st.session_state.session_id[:8]}.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -170,7 +173,7 @@ with st.sidebar:
                 status = rag_engine.process_documents(FILES_DIR, DB_DIR)
                 
                 if status == "Success":
-                    st.success("Ready!")
+                    st.success("Ready")
                     st.session_state.db_ready = True
                 else:
                     st.error(f"Error: {status}")
@@ -194,7 +197,7 @@ if prompt := st.chat_input("Enter your query..."):
     st.markdown(f"**User:** {prompt}")
     
     if st.session_state.get("db_ready"):
-        with st.spinner("Thinking..."):
+        with st.spinner("Processing..."):
             response = rag_engine.query(
                 query_text=prompt, 
                 db_path=DB_DIR, 
