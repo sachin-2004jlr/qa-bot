@@ -4,87 +4,122 @@ import shutil
 import uuid
 from src.backend import AdvancedRAG
 
-st.set_page_config(page_title="Multi-LLM RAG", layout="wide")
+# -----------------------------------------------------------------------------
+# PAGE CONFIGURATION
+# -----------------------------------------------------------------------------
+st.set_page_config(
+    page_title="Multi-LLM RAG", 
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
 st.markdown("<h1 style='text-align: center;'>Multi-Model RAG (Secure & Isolated)</h1>", unsafe_allow_html=True)
 
-# --- SESSION ISOLATION ---
+# -----------------------------------------------------------------------------
+# SECURITY & ISOLATION
+# -----------------------------------------------------------------------------
+# 1. Generate a unique Session ID for this specific user/tab
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 
-base_dir = "temp_data"
-user_session_path = os.path.join(base_dir, st.session_state.session_id)
-files_path = os.path.join(user_session_path, "files")
-db_path = os.path.join(user_session_path, "db")
+# 2. Define isolated paths based on that Session ID
+BASE_DIR = "temp_data"
+USER_SESSION_DIR = os.path.join(BASE_DIR, st.session_state.session_id)
+FILES_DIR = os.path.join(USER_SESSION_DIR, "files")
+DB_DIR = os.path.join(USER_SESSION_DIR, "db")
 
-os.makedirs(files_path, exist_ok=True)
-os.makedirs(db_path, exist_ok=True)
+# 3. Ensure these folders exist immediately
+os.makedirs(FILES_DIR, exist_ok=True)
+os.makedirs(DB_DIR, exist_ok=True)
 
-# --- MODEL REGISTRY ---
-# I have removed the broken Gemma model and added Mixtral
+# -----------------------------------------------------------------------------
+# MODEL REGISTRY (VERIFIED ACTIVE)
+# -----------------------------------------------------------------------------
+# Updated to replace decommissioned models with DeepSeek R1
 model_map = {
-    "Llama 3.3 70B (Versatile)": "llama-3.3-70b-versatile",
-    "Llama 3.1 8B (Instant)": "llama-3.1-8b-instant",
-    "Llama 4 (Scout 17B)": "meta-llama/llama-4-scout-17b-16e-instruct",
-    "Qwen 3 32B": "qwen/qwen3-32b",
-    "Mixtral 8x7b": "mixtral-8x7b-32768"  # <--- Replaced Gemma with this stable model
+    "Llama 3.3 70B (Versatile)": "llama-3.3-70b-versatile",          # Best General Purpose
+    "Llama 3.1 8B (Instant)": "llama-3.1-8b-instant",              # Fastest
+    "Llama 4 (Scout 17B)": "meta-llama/llama-4-scout-17b-16e-instruct", # State-of-the-Art Preview
+    "Qwen 3 32B": "qwen/qwen3-32b",                                # Best Non-Llama Open Model
+    "DeepSeek R1 (Distill 70B)": "deepseek-r1-distill-llama-70b"   # <--- REPLACED BROKEN MIXTRAL WITH THIS
 }
 
+# -----------------------------------------------------------------------------
+# CACHED BACKEND
+# -----------------------------------------------------------------------------
 @st.cache_resource
 def get_rag_engine():
     return AdvancedRAG()
 
 rag_engine = get_rag_engine()
 
-# --- SIDEBAR ---
+# -----------------------------------------------------------------------------
+# SIDEBAR: CONTROLS & DATA
+# -----------------------------------------------------------------------------
 with st.sidebar:
     st.header("🧠 Neural Core")
-    selected_model_friendly = st.selectbox("Select AI Model", list(model_map.keys()))
+    
+    # Model Selector
+    selected_model_friendly = st.selectbox("Select AI Model", list(model_map.keys()), index=0)
     selected_model_id = model_map[selected_model_friendly]
     
-    st.info(f"Active Model ID: `{selected_model_id}`")
+    st.info(f"**Active Brain:** `{selected_model_friendly}`")
     st.divider()
     
     st.header("📂 Secure Data Upload")
     uploaded_files = st.file_uploader("Upload PDF/Docx", accept_multiple_files=True)
     
-    if st.button("Process & Index"):
+    if st.button("Process & Index Documents", type="primary"):
         if uploaded_files:
-            with st.spinner("Indexing..."):
-                if os.path.exists(files_path):
-                    shutil.rmtree(files_path)
-                os.makedirs(files_path)
+            with st.spinner("Encrypting, Chunking & Indexing..."):
+                # Clean old files for THIS session only
+                if os.path.exists(FILES_DIR):
+                    shutil.rmtree(FILES_DIR)
+                os.makedirs(FILES_DIR)
                 
+                # Save new files
                 for file in uploaded_files:
-                    with open(os.path.join(files_path, file.name), "wb") as f:
+                    file_path = os.path.join(FILES_DIR, file.name)
+                    with open(file_path, "wb") as f:
                         f.write(file.getbuffer())
                 
-                status = rag_engine.process_documents(files_path, db_path)
+                # Process into the isolated ChromaDB
+                status = rag_engine.process_documents(FILES_DIR, DB_DIR)
                 
                 if status == "Success":
-                    st.success("Indexed Successfully!")
+                    st.success("✅ Data Successfully Indexed!")
                     st.session_state.db_ready = True
                 else:
-                    st.error(status)
+                    st.error(f"❌ Error: {status}")
         else:
-            st.warning("Please upload files first.")
+            st.warning("⚠️ Please upload files first.")
 
-# --- CHAT ---
+# -----------------------------------------------------------------------------
+# MAIN CHAT INTERFACE
+# -----------------------------------------------------------------------------
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+# Display Chat History
 for msg in st.session_state.messages:
     role = "User" if msg["role"] == "user" else f"AI ({msg.get('model_name', 'Unknown')})"
     st.markdown(f"**{role}:** {msg['content']}")
     if msg["role"] == "assistant":
         st.markdown("---")
 
-if prompt := st.chat_input(f"Ask {selected_model_friendly}..."):
+# Chat Input
+if prompt := st.chat_input(f"Ask questions using {selected_model_friendly}..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.markdown(f"**User:** {prompt}")
     
     if st.session_state.get("db_ready"):
-        with st.spinner(f"Generating with {selected_model_friendly}..."):
-            response = rag_engine.query(prompt, db_path, selected_model_id)
+        with st.spinner(f"Thinking with {selected_model_friendly}..."):
+            
+            response = rag_engine.query(
+                query_text=prompt, 
+                db_path=DB_DIR, 
+                model_name=selected_model_id
+            )
             
             st.markdown(f"**AI ({selected_model_friendly}):** {response}")
             st.markdown("---")
