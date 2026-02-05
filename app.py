@@ -18,30 +18,28 @@ st.markdown("<h1 style='text-align: center;'>Multi-Model RAG (Secure & Isolated)
 # -----------------------------------------------------------------------------
 # SECURITY & ISOLATION
 # -----------------------------------------------------------------------------
-# 1. Generate a unique Session ID for this specific user/tab
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 
-# 2. Define isolated paths based on that Session ID
 BASE_DIR = "temp_data"
 USER_SESSION_DIR = os.path.join(BASE_DIR, st.session_state.session_id)
 FILES_DIR = os.path.join(USER_SESSION_DIR, "files")
 DB_DIR = os.path.join(USER_SESSION_DIR, "db")
 
-# 3. Ensure these folders exist immediately
 os.makedirs(FILES_DIR, exist_ok=True)
 os.makedirs(DB_DIR, exist_ok=True)
 
 # -----------------------------------------------------------------------------
-# MODEL REGISTRY (VERIFIED ACTIVE)
+# MODEL REGISTRY (VERIFIED ACTIVE FEB 2026)
 # -----------------------------------------------------------------------------
-# Updated to replace decommissioned models with DeepSeek R1
+# STRICTLY only models that are currently Production or Active Preview.
+# Removed: Mixtral, Gemma, DeepSeek (Decommissioned late 2025)
 model_map = {
-    "Llama 3.3 70B (Versatile)": "llama-3.3-70b-versatile",          # Best General Purpose
-    "Llama 3.1 8B (Instant)": "llama-3.1-8b-instant",              # Fastest
-    "Llama 4 (Scout 17B)": "meta-llama/llama-4-scout-17b-16e-instruct", # State-of-the-Art Preview
-    "Qwen 3 32B": "qwen/qwen3-32b",                                # Best Non-Llama Open Model
-    "DeepSeek R1 (Distill 70B)": "deepseek-r1-distill-llama-70b"   # <--- REPLACED BROKEN MIXTRAL WITH THIS
+    "Llama 3.3 70B (Versatile)": "llama-3.3-70b-versatile",          # Verified Working
+    "Llama 3.1 8B (Instant)": "llama-3.1-8b-instant",              # Verified Working
+    "Llama 4 (Scout 17B)": "meta-llama/llama-4-scout-17b-16e-instruct", # Verified Working
+    "Qwen 3 32B": "qwen/qwen3-32b",                                # Verified Working
+    "GPT-OSS 20B": "openai/gpt-oss-20b"                            # Active Production Model
 }
 
 # -----------------------------------------------------------------------------
