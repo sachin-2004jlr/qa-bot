@@ -9,3 +9,4 @@ chromadb
 pypdf
 docx2txt
 pysqlite3-binary
+python-docx
