@@ -1,14 +1,15 @@
 import sys
-# Cloud Database Fix
+import os
+import shutil
+from dotenv import load_dotenv
+
+# --- Streamlit Cloud SQLite Fix ---
 try:
     __import__('pysqlite3')
     sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 except ImportError:
     pass
-
-import os
-import shutil
-from dotenv import load_dotenv
+# ----------------------------------
 
 from llama_index.core import (
     VectorStoreIndex, 
@@ -28,24 +29,19 @@ load_dotenv()
 
 class AdvancedRAG:
     def __init__(self):
-        # 1. EMBEDDING: MiniLM (Fast & Reliable)
+        # 1. EMBEDDING: Load once (Heavy operation, but shared safely)
+        # We use MiniLM because it is fast and CPU-friendly for free cloud
         self.embed_model = HuggingFaceEmbedding(
             model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
-        
-        # 2. LLM: UPDATED to Llama 3.3 70B (The dead '8b' model is gone)
-        self.llm = Groq(
-            model="llama-3.3-70b-versatile",  # <--- THIS IS THE FIX
-            api_key=os.getenv("GROQ_API_KEY"),
-            temperature=0.1
-        )
-
-        Settings.llm = self.llm
+        # Set embedding model globally
         Settings.embed_model = self.embed_model
 
     def process_documents(self, file_dir, db_path):
+        """
+        Processes documents and creates a USER-SPECIFIC ChromaDB.
+        """
         try:
-            # SimpleDirectoryReader handles .pdf, .docx, .txt
             reader = SimpleDirectoryReader(
                 input_dir=file_dir,
                 recursive=True
@@ -55,18 +51,15 @@ class AdvancedRAG:
             if not documents:
                 return "No documents found."
             
-            # Filter empty docs to prevent crashes
+            # Filter empty docs
             documents = [doc for doc in documents if doc.text and len(doc.text.strip()) > 0]
-
             if not documents:
                 return "No valid text found in documents."
 
-            # CHUNKING: Standard Sentence Splitter (Instant)
-            splitter = SentenceSplitter(
-                chunk_size=1024,
-                chunk_overlap=200
-            )
+            # Chunking
+            splitter = SentenceSplitter(chunk_size=1024, chunk_overlap=200)
             
+            # Database Connection (ISOLATED via db_path)
             chroma_client = chromadb.PersistentClient(path=db_path)
             chroma_collection = chroma_client.get_or_create_collection("user_data")
             
@@ -85,8 +78,23 @@ class AdvancedRAG:
         except Exception as e:
             return f"Error: {str(e)}"
 
-    def query(self, query_text, db_path):
+    def query(self, query_text, db_path, model_name):
+        """
+        Retrieves context and generates answer using the SELECTED Model.
+        """
         try:
+            # 2. LLM: Initialize dynamically based on user selection
+            # This ensures the generation step uses the specific model requested
+            llm = Groq(
+                model=model_name,
+                api_key=os.getenv("GROQ_API_KEY"),
+                temperature=0.3 # Slightly creative but focused
+            )
+            
+            # Force LlamaIndex to use this specific LLM for this query
+            Settings.llm = llm
+
+            # Connect to the User's specific DB
             chroma_client = chromadb.PersistentClient(path=db_path)
             chroma_collection = chroma_client.get_or_create_collection("user_data")
             vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
@@ -96,12 +104,13 @@ class AdvancedRAG:
                 embed_model=self.embed_model
             )
 
-            # RETRIEVAL: Top 10 Chunks
+            # Retrieve top 5 most relevant chunks (Context)
             retriever = VectorIndexRetriever(
                 index=index,
-                similarity_top_k=10
+                similarity_top_k=5
             )
 
+            # The Query Engine combines: Retriever + LLM (Generator)
             query_engine = RetrieverQueryEngine(
                 retriever=retriever
             )
