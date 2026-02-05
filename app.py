@@ -6,9 +6,6 @@ import io
 from docx import Document
 from src.backend import AdvancedRAG
 
-# -----------------------------------------------------------------------------
-# PAGE CONFIGURATION
-# -----------------------------------------------------------------------------
 st.set_page_config(
     page_title="Multi Model RAG", 
     layout="wide",
@@ -17,9 +14,6 @@ st.set_page_config(
 
 st.markdown("<h1 style='text-align: center;'>Multi Model RAG</h1>", unsafe_allow_html=True)
 
-# -----------------------------------------------------------------------------
-# STATE MANAGEMENT
-# -----------------------------------------------------------------------------
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
@@ -29,9 +23,6 @@ if "session_id" not in st.session_state:
     st.session_state.chat_title = "New Chat"
     st.session_state.db_ready = False
 
-# -----------------------------------------------------------------------------
-# PATH CONFIGURATION
-# -----------------------------------------------------------------------------
 BASE_DIR = "temp_data"
 USER_SESSION_DIR = os.path.join(BASE_DIR, st.session_state.session_id)
 FILES_DIR = os.path.join(USER_SESSION_DIR, "files")
@@ -40,9 +31,6 @@ DB_DIR = os.path.join(USER_SESSION_DIR, "db")
 os.makedirs(FILES_DIR, exist_ok=True)
 os.makedirs(DB_DIR, exist_ok=True)
 
-# -----------------------------------------------------------------------------
-# HELPER: WORD DOCUMENT GENERATOR
-# -----------------------------------------------------------------------------
 def generate_document(messages):
     doc = Document()
     doc.add_heading('Chat Conversation Log', 0)
@@ -51,24 +39,18 @@ def generate_document(messages):
         role = "User" if msg["role"] == "user" else f"AI ({msg.get('model_name', 'Unknown')})"
         content = msg["content"]
         
-        # Add Role as Bold Heading
         p = doc.add_paragraph()
         runner = p.add_run(f"{role}:")
         runner.bold = True
         
-        # Add Content
         doc.add_paragraph(content)
-        doc.add_paragraph("-" * 20) # Separator
+        doc.add_paragraph("-" * 20)
         
-    # Save to memory buffer
     buffer = io.BytesIO()
     doc.save(buffer)
     buffer.seek(0)
     return buffer
 
-# -----------------------------------------------------------------------------
-# MODEL REGISTRY
-# -----------------------------------------------------------------------------
 model_map = {
     "Llama 3.3 70B (Versatile)": "llama-3.3-70b-versatile",
     "Llama 3.1 8B (Instant)": "llama-3.1-8b-instant",
@@ -77,21 +59,13 @@ model_map = {
     "GPT-OSS 20B": "openai/gpt-oss-20b"
 }
 
-# -----------------------------------------------------------------------------
-# CACHED BACKEND
-# -----------------------------------------------------------------------------
 @st.cache_resource
 def get_rag_engine():
     return AdvancedRAG()
 
 rag_engine = get_rag_engine()
 
-# -----------------------------------------------------------------------------
-# SIDEBAR LOGIC
-# -----------------------------------------------------------------------------
 with st.sidebar:
-    # --- NEW CHAT BUTTON ---
-    # Removed "➕" icon
     if st.button("New Chat", type="primary", use_container_width=True):
         if st.session_state.messages:
             st.session_state.chat_history.append({
@@ -109,11 +83,9 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # --- HISTORY SECTION ---
     st.header("Chat History")
     
     for i, chat in enumerate(reversed(st.session_state.chat_history)):
-        # Removed "📄" icon
         if st.button(f"{chat['title']}", key=f"hist_{chat['id']}"):
             if st.session_state.messages and st.session_state.session_id != chat['id']:
                  st.session_state.chat_history.append({
@@ -133,10 +105,8 @@ with st.sidebar:
 
     st.markdown("---")
     
-    # --- DOWNLOAD SECTION ---
     if st.session_state.messages:
         docx_file = generate_document(st.session_state.messages)
-        # Removed "📥" icon
         st.download_button(
             label="Download Conversation (DOCX)",
             data=docx_file,
@@ -146,7 +116,6 @@ with st.sidebar:
         )
         st.markdown("---")
 
-    # --- MODEL & UPLOAD SECTION ---
     st.header("Settings")
     
     selected_model_friendly = st.selectbox("Select Model", list(model_map.keys()), index=0)
@@ -180,9 +149,6 @@ with st.sidebar:
         else:
             st.warning("Upload files first.")
 
-# -----------------------------------------------------------------------------
-# MAIN CHAT INTERFACE
-# -----------------------------------------------------------------------------
 for msg in st.session_state.messages:
     role = "User" if msg["role"] == "user" else f"AI ({msg.get('model_name', 'Unknown')})"
     st.markdown(f"**{role}:** {msg['content']}")
