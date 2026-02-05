@@ -13,20 +13,31 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 1. CLEAN TITLE (Formal, no icons, no extra words)
 st.markdown("<h1 style='text-align: center;'>Multi Model RAG</h1>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# SECURITY & ISOLATION
+# STATE MANAGEMENT (Crucial for History)
 # -----------------------------------------------------------------------------
+# 1. Initialize Global History List
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
+
+# 2. Initialize Current Session State
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
+    st.session_state.messages = []
+    st.session_state.chat_title = "New Chat"
+    st.session_state.db_ready = False
 
+# -----------------------------------------------------------------------------
+# PATH CONFIGURATION (Dynamic based on Current Session ID)
+# -----------------------------------------------------------------------------
 BASE_DIR = "temp_data"
 USER_SESSION_DIR = os.path.join(BASE_DIR, st.session_state.session_id)
 FILES_DIR = os.path.join(USER_SESSION_DIR, "files")
 DB_DIR = os.path.join(USER_SESSION_DIR, "db")
 
+# Ensure folders exist for the CURRENT active chat
 os.makedirs(FILES_DIR, exist_ok=True)
 os.makedirs(DB_DIR, exist_ok=True)
 
@@ -51,27 +62,73 @@ def get_rag_engine():
 rag_engine = get_rag_engine()
 
 # -----------------------------------------------------------------------------
-# SIDEBAR: CONTROLS
+# SIDEBAR LOGIC
 # -----------------------------------------------------------------------------
 with st.sidebar:
-    # Formal Header (No Icons)
-    st.header("Model Selection")
+    # --- NEW CHAT BUTTON ---
+    if st.button("➕ New Chat", type="primary", use_container_width=True):
+        # 1. Save current chat to history (if it has messages)
+        if st.session_state.messages:
+            st.session_state.chat_history.append({
+                "id": st.session_state.session_id,
+                "title": st.session_state.chat_title,
+                "messages": st.session_state.messages,
+                "db_ready": st.session_state.db_ready
+            })
+        
+        # 2. Reset State for Fresh Start
+        st.session_state.session_id = str(uuid.uuid4()) # NEW UUID = NEW DATA FOLDER
+        st.session_state.messages = []
+        st.session_state.chat_title = "New Chat"
+        st.session_state.db_ready = False
+        st.rerun()
+
+    st.markdown("---")
     
-    selected_model_friendly = st.selectbox("Select AI Model", list(model_map.keys()), index=0)
+    # --- HISTORY SECTION ---
+    st.header("Chat History")
+    
+    # Display previous chats as buttons
+    # We reverse the list to show newest on top
+    for i, chat in enumerate(reversed(st.session_state.chat_history)):
+        if st.button(f"📄 {chat['title']}", key=f"hist_{chat['id']}"):
+            # 1. Save CURRENT chat before switching
+            if st.session_state.messages and st.session_state.session_id != chat['id']:
+                 st.session_state.chat_history.append({
+                    "id": st.session_state.session_id,
+                    "title": st.session_state.chat_title,
+                    "messages": st.session_state.messages,
+                    "db_ready": st.session_state.db_ready
+                })
+            
+            # 2. Load the CLICKED chat
+            st.session_state.session_id = chat['id']
+            st.session_state.messages = chat['messages']
+            st.session_state.chat_title = chat['title']
+            st.session_state.db_ready = chat['db_ready']
+            
+            # 3. Remove the loaded chat from history list (it's now active)
+            # We filter it out by ID
+            st.session_state.chat_history = [c for c in st.session_state.chat_history if c['id'] != chat['id']]
+            st.rerun()
+
+    st.markdown("---")
+
+    # --- MODEL & UPLOAD SECTION ---
+    st.header("Settings")
+    
+    # Model Selector
+    selected_model_friendly = st.selectbox("Select Model", list(model_map.keys()), index=0)
     selected_model_id = model_map[selected_model_friendly]
     
-    # Formal Info Box
-    st.info(f"**Current Model:** `{selected_model_friendly}`")
-    st.divider()
+    # File Uploader
+    uploaded_files = st.file_uploader("Upload Documents", accept_multiple_files=True)
     
-    # Formal Upload Section
-    st.header("Document Upload")
-    uploaded_files = st.file_uploader("Upload PDF/Docx", accept_multiple_files=True)
-    
-    if st.button("Process Documents", type="primary"):
+    # Process Button
+    if st.button("Process Documents", use_container_width=True):
         if uploaded_files:
-            with st.spinner("Processing documents..."):
-                # Clean old files for THIS session
+            with st.spinner("Processing..."):
+                # Clean old files for THIS SPECIFIC SESSION only
                 if os.path.exists(FILES_DIR):
                     shutil.rmtree(FILES_DIR)
                 os.makedirs(FILES_DIR)
@@ -86,20 +143,17 @@ with st.sidebar:
                 status = rag_engine.process_documents(FILES_DIR, DB_DIR)
                 
                 if status == "Success":
-                    st.success("Documents processed successfully.")
+                    st.success("Ready!")
                     st.session_state.db_ready = True
                 else:
                     st.error(f"Error: {status}")
         else:
-            st.warning("Please upload files first.")
+            st.warning("Upload files first.")
 
 # -----------------------------------------------------------------------------
 # MAIN CHAT INTERFACE
 # -----------------------------------------------------------------------------
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-
-# Display Chat History
+# Display Chat History for Current Session
 for msg in st.session_state.messages:
     role = "User" if msg["role"] == "user" else f"AI ({msg.get('model_name', 'Unknown')})"
     st.markdown(f"**{role}:** {msg['content']}")
@@ -108,15 +162,21 @@ for msg in st.session_state.messages:
 
 # Chat Input
 if prompt := st.chat_input("Enter your query..."):
+    # 1. Set Title (if first message)
+    if not st.session_state.messages:
+        # Generate a title from the first 4-5 words
+        st.session_state.chat_title = " ".join(prompt.split()[:5]) + "..."
+    
+    # 2. Append User Message
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.markdown(f"**User:** {prompt}")
     
+    # 3. Process with AI
     if st.session_state.get("db_ready"):
-        with st.spinner(f"Processing with {selected_model_friendly}..."):
-            
+        with st.spinner("Thinking..."):
             response = rag_engine.query(
                 query_text=prompt, 
-                db_path=DB_DIR, 
+                db_path=DB_DIR, # Uses CURRENT session's DB folder
                 model_name=selected_model_id
             )
             
@@ -129,4 +189,4 @@ if prompt := st.chat_input("Enter your query..."):
                 "model_name": selected_model_friendly
             })
     else:
-        st.error("Please upload and process documents first.")
+        st.error("Please upload documents for this new chat.")
