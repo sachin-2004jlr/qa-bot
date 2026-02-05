@@ -16,7 +16,7 @@ st.set_page_config(
 st.markdown("<h1 style='text-align: center;'>Multi Model RAG</h1>", unsafe_allow_html=True)
 
 # -----------------------------------------------------------------------------
-# STATE MANAGEMENT (Crucial for History)
+# STATE MANAGEMENT
 # -----------------------------------------------------------------------------
 # 1. Initialize Global History List
 if "chat_history" not in st.session_state:
@@ -67,7 +67,7 @@ rag_engine = get_rag_engine()
 with st.sidebar:
     # --- NEW CHAT BUTTON ---
     if st.button("➕ New Chat", type="primary", use_container_width=True):
-        # 1. Save current chat to history (if it has messages)
+        # 1. Save current chat to history (only if it has messages)
         if st.session_state.messages:
             st.session_state.chat_history.append({
                 "id": st.session_state.session_id,
@@ -77,10 +77,12 @@ with st.sidebar:
             })
         
         # 2. Reset State for Fresh Start
-        st.session_state.session_id = str(uuid.uuid4()) # NEW UUID = NEW DATA FOLDER
+        st.session_state.session_id = str(uuid.uuid4()) # Generates NEW ID
         st.session_state.messages = []
         st.session_state.chat_title = "New Chat"
         st.session_state.db_ready = False
+        
+        # 3. Rerun to apply changes and CLEAR UI
         st.rerun()
 
     st.markdown("---")
@@ -88,11 +90,10 @@ with st.sidebar:
     # --- HISTORY SECTION ---
     st.header("Chat History")
     
-    # Display previous chats as buttons
-    # We reverse the list to show newest on top
+    # Display previous chats
     for i, chat in enumerate(reversed(st.session_state.chat_history)):
         if st.button(f"📄 {chat['title']}", key=f"hist_{chat['id']}"):
-            # 1. Save CURRENT chat before switching
+            # Save CURRENT chat before switching
             if st.session_state.messages and st.session_state.session_id != chat['id']:
                  st.session_state.chat_history.append({
                     "id": st.session_state.session_id,
@@ -101,14 +102,13 @@ with st.sidebar:
                     "db_ready": st.session_state.db_ready
                 })
             
-            # 2. Load the CLICKED chat
+            # Load the CLICKED chat
             st.session_state.session_id = chat['id']
             st.session_state.messages = chat['messages']
             st.session_state.chat_title = chat['title']
             st.session_state.db_ready = chat['db_ready']
             
-            # 3. Remove the loaded chat from history list (it's now active)
-            # We filter it out by ID
+            # Remove from history list (since it's now active)
             st.session_state.chat_history = [c for c in st.session_state.chat_history if c['id'] != chat['id']]
             st.rerun()
 
@@ -122,7 +122,13 @@ with st.sidebar:
     selected_model_id = model_map[selected_model_friendly]
     
     # File Uploader
-    uploaded_files = st.file_uploader("Upload Documents", accept_multiple_files=True)
+    # FIX: The 'key' is dynamic. When session_id changes (New Chat), 
+    # the key changes, forcing Streamlit to create a FRESH widget with NO files.
+    uploaded_files = st.file_uploader(
+        "Upload Documents", 
+        accept_multiple_files=True, 
+        key=f"uploader_{st.session_state.session_id}"
+    )
     
     # Process Button
     if st.button("Process Documents", use_container_width=True):
@@ -164,7 +170,6 @@ for msg in st.session_state.messages:
 if prompt := st.chat_input("Enter your query..."):
     # 1. Set Title (if first message)
     if not st.session_state.messages:
-        # Generate a title from the first 4-5 words
         st.session_state.chat_title = " ".join(prompt.split()[:5]) + "..."
     
     # 2. Append User Message
@@ -176,7 +181,7 @@ if prompt := st.chat_input("Enter your query..."):
         with st.spinner("Thinking..."):
             response = rag_engine.query(
                 query_text=prompt, 
-                db_path=DB_DIR, # Uses CURRENT session's DB folder
+                db_path=DB_DIR, 
                 model_name=selected_model_id
             )
             
