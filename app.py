@@ -13,56 +13,63 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. Professional UI Styling (CSS)
+# 2. Professional Dark Theme UI Styling (CSS)
 st.markdown("""
     <style>
     /* Main Title Styling */
     .main-title {
         text-align: center;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        color: #1f2937;
-        padding-bottom: 20px;
+        color: #ffffff;
+        padding-bottom: 25px;
+        font-weight: 300;
+        letter-spacing: 2px;
     }
     
     /* Chat Container General Styling */
     .chat-container {
         padding: 20px;
-        border-radius: 10px;
-        margin-bottom: 15px;
-        border: 1px solid #e6e9ef;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        border-radius: 12px;
+        margin-bottom: 20px;
+        border: 1px solid #333333;
+        font-family: 'Inter', -apple-system, sans-serif;
     }
     
-    /* User Message Styling */
+    /* User Message Styling - Shady Black/Deep Grey */
     .user-box {
-        background-color: #f0f2f6;
-        border-left: 5px solid #007BFF;
+        background-color: #2d2d2d;
+        border-left: 4px solid #3b82f6; /* Professional Blue Accent */
     }
     
-    /* AI Message Styling */
+    /* AI Message Styling - Dark Charcoal */
     .ai-box {
-        background-color: #ffffff;
-        border-left: 5px solid #28A745;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        background-color: #1e1e1e;
+        border-left: 4px solid #10b981; /* Professional Green Accent */
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     }
     
     /* Metadata/Role Header Styling */
     .role-header {
-        font-weight: bold;
-        color: #4b5563;
-        margin-bottom: 8px;
+        font-weight: 600;
+        color: #9ca3af; /* Muted Grey Text */
+        margin-bottom: 10px;
         text-transform: uppercase;
-        font-size: 0.75rem;
-        letter-spacing: 1.2px;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 4px;
+        font-size: 0.7rem;
+        letter-spacing: 1.5px;
+        border-bottom: 1px solid #333333;
+        padding-bottom: 6px;
     }
     
     /* Text Content Styling */
     .content-text {
-        color: #111827;
-        line-height: 1.6;
-        font-size: 1rem;
+        color: #e5e7eb; /* High-readability off-white */
+        line-height: 1.7;
+        font-size: 0.95rem;
+    }
+
+    /* Adjusting Streamlit's default background to ensure consistency */
+    .stApp {
+        background-color: #0e1117;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -128,7 +135,8 @@ with st.sidebar:
                 "messages": st.session_state.messages,
                 "db_ready": st.session_state.db_ready
             })
-        st.session_state.session_id = str(uuid.uuid4())
+        st.session_id = str(uuid.uuid4())
+        st.session_state.session_id = st.session_id
         st.session_state.messages = []
         st.session_state.chat_title = "New Chat"
         st.session_state.db_ready = False
@@ -136,7 +144,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.header("Chat History")
-    for i, chat in enumerate(reversed(st.session_state.chat_history)):
+    for chat in reversed(st.session_state.chat_history):
         if st.button(f"{chat['title']}", key=f"hist_{chat['id']}"):
             if st.session_state.messages and st.session_state.session_id != chat['id']:
                  st.session_state.chat_history.append({
@@ -176,7 +184,7 @@ with st.sidebar:
     
     if st.button("Process Documents", use_container_width=True):
         if uploaded_files:
-            with st.spinner("Analyzing structure and indexing..."):
+            with st.spinner("Analyzing and Indexing Documents..."):
                 if os.path.exists(FILES_DIR):
                     shutil.rmtree(FILES_DIR)
                 os.makedirs(FILES_DIR)
@@ -186,12 +194,12 @@ with st.sidebar:
                         f.write(file.getbuffer())
                 status = rag_engine.process_documents(FILES_DIR, DB_DIR)
                 if status == "Success":
-                    st.success("Documents Processed Successfully")
+                    st.success("Indexing Complete")
                     st.session_state.db_ready = True
                 else:
                     st.error(f"Error: {status}")
         else:
-            st.warning("Please upload documents first.")
+            st.warning("Upload documents to proceed.")
 
 # 7. Chat Display Logic
 for msg in st.session_state.messages:
@@ -221,7 +229,7 @@ if prompt := st.chat_input("Enter your query..."):
 
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
     if st.session_state.get("db_ready"):
-        with st.spinner(f"Generating professional response using {selected_model_friendly}..."):
+        with st.spinner(f"Querying {selected_model_friendly}..."):
             response = rag_engine.query(
                 query_text=st.session_state.messages[-1]["content"], 
                 db_path=DB_DIR, 
@@ -234,4 +242,4 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
             })
             st.rerun()
     else:
-        st.error("Document database not found. Please upload and process documents in the sidebar.")
+        st.error("Document context is missing. Please process documents in the sidebar.")
