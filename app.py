@@ -6,14 +6,70 @@ import io
 from docx import Document
 from src.backend import AdvancedRAG
 
+# 1. Page Configuration
 st.set_page_config(
     page_title="Multi Model RAG", 
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-st.markdown("<h1 style='text-align: center;'>Multi Model RAG</h1>", unsafe_allow_html=True)
+# 2. Professional UI Styling (CSS)
+st.markdown("""
+    <style>
+    /* Main Title Styling */
+    .main-title {
+        text-align: center;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        color: #1f2937;
+        padding-bottom: 20px;
+    }
+    
+    /* Chat Container General Styling */
+    .chat-container {
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 15px;
+        border: 1px solid #e6e9ef;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    /* User Message Styling */
+    .user-box {
+        background-color: #f0f2f6;
+        border-left: 5px solid #007BFF;
+    }
+    
+    /* AI Message Styling */
+    .ai-box {
+        background-color: #ffffff;
+        border-left: 5px solid #28A745;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    /* Metadata/Role Header Styling */
+    .role-header {
+        font-weight: bold;
+        color: #4b5563;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 1.2px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 4px;
+    }
+    
+    /* Text Content Styling */
+    .content-text {
+        color: #111827;
+        line-height: 1.6;
+        font-size: 1rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
+st.markdown("<h1 class='main-title'>Multi Model RAG</h1>", unsafe_allow_html=True)
+
+# 3. Session State Initialization
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
@@ -23,6 +79,7 @@ if "session_id" not in st.session_state:
     st.session_state.chat_title = "New Chat"
     st.session_state.db_ready = False
 
+# 4. Directory Management
 BASE_DIR = "temp_data"
 USER_SESSION_DIR = os.path.join(BASE_DIR, st.session_state.session_id)
 FILES_DIR = os.path.join(USER_SESSION_DIR, "files")
@@ -31,21 +88,17 @@ DB_DIR = os.path.join(USER_SESSION_DIR, "db")
 os.makedirs(FILES_DIR, exist_ok=True)
 os.makedirs(DB_DIR, exist_ok=True)
 
+# 5. Helper Functions
 def generate_document(messages):
     doc = Document()
     doc.add_heading('Chat Conversation Log', 0)
-    
     for msg in messages:
         role = "User" if msg["role"] == "user" else f"AI ({msg.get('model_name', 'Unknown')})"
-        content = msg["content"]
-        
         p = doc.add_paragraph()
         runner = p.add_run(f"{role}:")
         runner.bold = True
-        
-        doc.add_paragraph(content)
+        doc.add_paragraph(msg["content"])
         doc.add_paragraph("-" * 20)
-        
     buffer = io.BytesIO()
     doc.save(buffer)
     buffer.seek(0)
@@ -65,6 +118,7 @@ def get_rag_engine():
 
 rag_engine = get_rag_engine()
 
+# 6. Sidebar Implementation
 with st.sidebar:
     if st.button("New Chat", type="primary", use_container_width=True):
         if st.session_state.messages:
@@ -74,7 +128,6 @@ with st.sidebar:
                 "messages": st.session_state.messages,
                 "db_ready": st.session_state.db_ready
             })
-        
         st.session_state.session_id = str(uuid.uuid4())
         st.session_state.messages = []
         st.session_state.chat_title = "New Chat"
@@ -82,9 +135,7 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    
     st.header("Chat History")
-    
     for i, chat in enumerate(reversed(st.session_state.chat_history)):
         if st.button(f"{chat['title']}", key=f"hist_{chat['id']}"):
             if st.session_state.messages and st.session_state.session_id != chat['id']:
@@ -94,17 +145,14 @@ with st.sidebar:
                     "messages": st.session_state.messages,
                     "db_ready": st.session_state.db_ready
                 })
-            
             st.session_state.session_id = chat['id']
             st.session_state.messages = chat['messages']
             st.session_state.chat_title = chat['title']
             st.session_state.db_ready = chat['db_ready']
-            
             st.session_state.chat_history = [c for c in st.session_state.chat_history if c['id'] != chat['id']]
             st.rerun()
 
     st.markdown("---")
-    
     if st.session_state.messages:
         docx_file = generate_document(st.session_state.messages)
         st.download_button(
@@ -117,7 +165,6 @@ with st.sidebar:
         st.markdown("---")
 
     st.header("Settings")
-    
     selected_model_friendly = st.selectbox("Select Model", list(model_map.keys()), index=0)
     selected_model_id = model_map[selected_model_friendly]
     
@@ -129,54 +176,62 @@ with st.sidebar:
     
     if st.button("Process Documents", use_container_width=True):
         if uploaded_files:
-            with st.spinner("Processing..."):
+            with st.spinner("Analyzing structure and indexing..."):
                 if os.path.exists(FILES_DIR):
                     shutil.rmtree(FILES_DIR)
                 os.makedirs(FILES_DIR)
-                
                 for file in uploaded_files:
                     file_path = os.path.join(FILES_DIR, file.name)
                     with open(file_path, "wb") as f:
                         f.write(file.getbuffer())
-                
                 status = rag_engine.process_documents(FILES_DIR, DB_DIR)
-                
                 if status == "Success":
-                    st.success("Ready")
+                    st.success("Documents Processed Successfully")
                     st.session_state.db_ready = True
                 else:
                     st.error(f"Error: {status}")
         else:
-            st.warning("Upload files first.")
+            st.warning("Please upload documents first.")
 
+# 7. Chat Display Logic
 for msg in st.session_state.messages:
-    role = "User" if msg["role"] == "user" else f"AI ({msg.get('model_name', 'Unknown')})"
-    st.markdown(f"**{role}:** {msg['content']}")
-    if msg["role"] == "assistant":
-        st.markdown("---")
+    if msg["role"] == "user":
+        st.markdown(f"""
+            <div class="chat-container user-box">
+                <div class="role-header">User Query</div>
+                <div class="content-text">{msg['content']}</div>
+            </div>
+        """, unsafe_allow_html=True)
+    else:
+        model_info = msg.get('model_name', 'Assistant')
+        st.markdown(f"""
+            <div class="chat-container ai-box">
+                <div class="role-header">Response | {model_info}</div>
+                <div class="content-text">{msg['content']}</div>
+            </div>
+        """, unsafe_allow_html=True)
 
+# 8. Chat Input and Processing
 if prompt := st.chat_input("Enter your query..."):
     if not st.session_state.messages:
         st.session_state.chat_title = " ".join(prompt.split()[:5]) + "..."
     
     st.session_state.messages.append({"role": "user", "content": prompt})
-    st.markdown(f"**User:** {prompt}")
-    
+    st.rerun()
+
+if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
     if st.session_state.get("db_ready"):
-        with st.spinner("Processing..."):
+        with st.spinner(f"Generating professional response using {selected_model_friendly}..."):
             response = rag_engine.query(
-                query_text=prompt, 
+                query_text=st.session_state.messages[-1]["content"], 
                 db_path=DB_DIR, 
                 model_name=selected_model_id
             )
-            
-            st.markdown(f"**AI ({selected_model_friendly}):** {response}")
-            st.markdown("---")
-            
             st.session_state.messages.append({
                 "role": "assistant", 
                 "content": response,
                 "model_name": selected_model_friendly
             })
+            st.rerun()
     else:
-        st.error("Please upload documents for this new chat.")
+        st.error("Document database not found. Please upload and process documents in the sidebar.")
