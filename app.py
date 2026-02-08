@@ -90,11 +90,11 @@ st.markdown("""
         font-size: 0.95rem;
     }
 
-    /* Export Container Positioning */
-    .export-container {
+    /* Column alignment for download button */
+    .download-col {
         display: flex;
         justify-content: flex-end;
-        margin-bottom: 10px;
+        align-items: center;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -144,7 +144,7 @@ def get_rag_engine():
     return AdvancedRAG()
 rag_engine = get_rag_engine()
 
-# 6. Simplified Sidebar
+# 6. Sidebar Implementation
 with st.sidebar:
     st.header("New Chat")
     if st.button("Start New Chat", type="primary", use_container_width=True):
@@ -193,17 +193,17 @@ with st.sidebar:
                     st.session_state.db_ready = True
                 else: st.error(f"Error: {status}")
 
-# 7. Main Interface & Export Logic
+# 7. Main Interface & Export Logic (Right Side)
 st.markdown("<h1 class='main-title'>Multi Model RAG</h1>", unsafe_allow_html=True)
 st.markdown("<p class='title-subtitle'>ENTERPRISE INTELLIGENCE SYSTEM</p>", unsafe_allow_html=True)
 
-# Right-aligned export button
 if st.session_state.messages:
-    col1, col2 = st.columns([8, 2])
-    with col2:
+    # Use columns to push the download button to the far right
+    header_col, download_col = st.columns([8, 2])
+    with download_col:
         docx_file = generate_document(st.session_state.messages)
         st.download_button(
-            label="Download DOCX",
+            label="Download Log (DOCX)",
             data=docx_file,
             file_name=f"chat_log_{st.session_state.session_id[:8]}.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -217,7 +217,7 @@ for msg in st.session_state.messages:
     else:
         st.markdown(f'<div class="chat-container ai-box"><div class="role-header">Response | {msg.get("model_name", "System")}</div><div class="content-text">{msg["content"]}</div></div>', unsafe_allow_html=True)
 
-# 8. Input Processing
+# 8. Input Processing (Fixed Parameter Name)
 if prompt := st.chat_input("Enter your query..."):
     if not st.session_state.messages:
         st.session_state.chat_title = " ".join(prompt.split()[:5]) + "..."
@@ -227,8 +227,13 @@ if prompt := st.chat_input("Enter your query..."):
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
     if st.session_state.get("db_ready"):
         with st.spinner("Processing..."):
-            response = rag_engine.query(prompt=st.session_state.messages[-1]["content"], db_path=DB_DIR, model_name=selected_model_id)
+            # FIX: Use query_text instead of prompt
+            response = rag_engine.query(
+                query_text=st.session_state.messages[-1]["content"], 
+                db_path=DB_DIR, 
+                model_name=selected_model_id
+            )
             st.session_state.messages.append({"role": "assistant", "content": response, "model_name": selected_model_friendly})
             st.rerun()
     else:
-        st.error("Please upload documents first.")
+        st.error("Please upload and process documents first.")
