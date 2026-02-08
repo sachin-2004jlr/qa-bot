@@ -13,63 +13,94 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# 2. Professional Dark Theme UI Styling (CSS)
+# 2. Advanced Professional Dark Theme (CSS)
 st.markdown("""
     <style>
-    /* Main Title Styling */
+    /* Global App Background */
+    .stApp {
+        background-color: #0e1117;
+    }
+
+    /* Main Title Styling - Refined Modern Serif/Sans */
     .main-title {
         text-align: center;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        color: #ffffff;
-        padding-bottom: 25px;
-        font-weight: 300;
-        letter-spacing: 2px;
+        font-family: 'Inter', -apple-system, sans-serif;
+        color: #f3f4f6;
+        padding: 40px 0px 20px 0px;
+        font-weight: 700;
+        letter-spacing: -0.05em;
+        text-transform: uppercase;
+        border-bottom: 1px solid #1f2937;
+        margin-bottom: 30px;
     }
     
+    /* Sidebar Professional Styling */
+    section[data-testid="stSidebar"] {
+        background-color: #111827;
+        border-right: 1px solid #1f2937;
+    }
+    
+    section[data-testid="stSidebar"] .stMarkdown h2, 
+    section[data-testid="stSidebar"] .stMarkdown h1 {
+        color: #9ca3af;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-top: 20px;
+    }
+
     /* Chat Container General Styling */
     .chat-container {
-        padding: 20px;
-        border-radius: 12px;
+        padding: 24px;
+        border-radius: 8px;
         margin-bottom: 20px;
-        border: 1px solid #333333;
-        font-family: 'Inter', -apple-system, sans-serif;
+        border: 1px solid #1f2937;
+        font-family: 'Inter', sans-serif;
     }
     
-    /* User Message Styling - Shady Black/Deep Grey */
+    /* User Message Styling - Shady Black with Slate Blue Accent */
     .user-box {
-        background-color: #2d2d2d;
-        border-left: 4px solid #3b82f6; /* Professional Blue Accent */
+        background-color: #1f2937;
+        border-left: 4px solid #475569; /* Slate Blue-Grey accent */
     }
     
-    /* AI Message Styling - Dark Charcoal */
+    /* AI Message Styling - Dark Charcoal with Deep Emerald Accent */
     .ai-box {
-        background-color: #1e1e1e;
-        border-left: 4px solid #10b981; /* Professional Green Accent */
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        background-color: #111827;
+        border-left: 4px solid #065f46; /* Deep Emerald accent */
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
     }
     
     /* Metadata/Role Header Styling */
     .role-header {
         font-weight: 600;
-        color: #9ca3af; /* Muted Grey Text */
-        margin-bottom: 10px;
+        color: #6b7280;
+        margin-bottom: 12px;
         text-transform: uppercase;
         font-size: 0.7rem;
-        letter-spacing: 1.5px;
-        border-bottom: 1px solid #333333;
-        padding-bottom: 6px;
+        letter-spacing: 0.15em;
+        border-bottom: 1px solid #1f2937;
+        padding-bottom: 8px;
     }
     
     /* Text Content Styling */
     .content-text {
-        color: #e5e7eb; /* High-readability off-white */
-        line-height: 1.7;
+        color: #d1d5db;
+        line-height: 1.8;
         font-size: 0.95rem;
     }
 
-    /* Adjusting Streamlit's default background to ensure consistency */
-    .stApp {
-        background-color: #0e1117;
+    /* Sidebar Button Refinement */
+    .stButton>button {
+        border-radius: 4px;
+        border: 1px solid #374151;
+        background-color: #1f2937;
+        color: #e5e7eb;
+        transition: all 0.3s ease;
+    }
+    .stButton>button:hover {
+        border-color: #4b5563;
+        background-color: #374151;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -127,6 +158,7 @@ rag_engine = get_rag_engine()
 
 # 6. Sidebar Implementation
 with st.sidebar:
+    st.header("Session Management")
     if st.button("New Chat", type="primary", use_container_width=True):
         if st.session_state.messages:
             st.session_state.chat_history.append({
@@ -135,17 +167,16 @@ with st.sidebar:
                 "messages": st.session_state.messages,
                 "db_ready": st.session_state.db_ready
             })
-        st.session_id = str(uuid.uuid4())
-        st.session_state.session_id = st.session_id
+        st.session_state.session_id = str(uuid.uuid4())
         st.session_state.messages = []
         st.session_state.chat_title = "New Chat"
         st.session_state.db_ready = False
         st.rerun()
 
     st.markdown("---")
-    st.header("Chat History")
+    st.header("Chat Archive")
     for chat in reversed(st.session_state.chat_history):
-        if st.button(f"{chat['title']}", key=f"hist_{chat['id']}"):
+        if st.button(f"{chat['title']}", key=f"hist_{chat['id']}", use_container_width=True):
             if st.session_state.messages and st.session_state.session_id != chat['id']:
                  st.session_state.chat_history.append({
                     "id": st.session_state.session_id,
@@ -161,30 +192,32 @@ with st.sidebar:
             st.rerun()
 
     st.markdown("---")
+    st.header("Data Export")
     if st.session_state.messages:
         docx_file = generate_document(st.session_state.messages)
         st.download_button(
-            label="Download Conversation (DOCX)",
+            label="Download Session Log (DOCX)",
             data=docx_file,
-            file_name=f"chat_log_{st.session_state.session_id[:8]}.docx",
+            file_name=f"session_log_{st.session_state.session_id[:8]}.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             use_container_width=True
         )
-        st.markdown("---")
 
-    st.header("Settings")
-    selected_model_friendly = st.selectbox("Select Model", list(model_map.keys()), index=0)
+    st.markdown("---")
+    st.header("System Settings")
+    selected_model_friendly = st.selectbox("Intelligence Model", list(model_map.keys()), index=0)
     selected_model_id = model_map[selected_model_friendly]
     
+    st.header("Document Processing")
     uploaded_files = st.file_uploader(
-        "Upload Documents", 
+        "Upload Source Documents", 
         accept_multiple_files=True, 
         key=f"uploader_{st.session_state.session_id}"
     )
     
-    if st.button("Process Documents", use_container_width=True):
+    if st.button("Initialize Knowledge Base", use_container_width=True):
         if uploaded_files:
-            with st.spinner("Analyzing and Indexing Documents..."):
+            with st.spinner("Processing Corporate Data..."):
                 if os.path.exists(FILES_DIR):
                     shutil.rmtree(FILES_DIR)
                 os.makedirs(FILES_DIR)
@@ -199,19 +232,19 @@ with st.sidebar:
                 else:
                     st.error(f"Error: {status}")
         else:
-            st.warning("Upload documents to proceed.")
+            st.warning("Upload required documents.")
 
 # 7. Chat Display Logic
 for msg in st.session_state.messages:
     if msg["role"] == "user":
         st.markdown(f"""
             <div class="chat-container user-box">
-                <div class="role-header">User Query</div>
+                <div class="role-header">Inquiry</div>
                 <div class="content-text">{msg['content']}</div>
             </div>
         """, unsafe_allow_html=True)
     else:
-        model_info = msg.get('model_name', 'Assistant')
+        model_info = msg.get('model_name', 'System Response')
         st.markdown(f"""
             <div class="chat-container ai-box">
                 <div class="role-header">Response | {model_info}</div>
@@ -220,7 +253,7 @@ for msg in st.session_state.messages:
         """, unsafe_allow_html=True)
 
 # 8. Chat Input and Processing
-if prompt := st.chat_input("Enter your query..."):
+if prompt := st.chat_input("Enter your inquiry..."):
     if not st.session_state.messages:
         st.session_state.chat_title = " ".join(prompt.split()[:5]) + "..."
     
@@ -242,4 +275,4 @@ if st.session_state.messages and st.session_state.messages[-1]["role"] == "user"
             })
             st.rerun()
     else:
-        st.error("Document context is missing. Please process documents in the sidebar.")
+        st.error("Knowledge base not initialized. Please upload documents.")
