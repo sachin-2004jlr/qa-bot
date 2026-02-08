@@ -8,113 +8,142 @@ from src.backend import AdvancedRAG
 
 # 1. Page Configuration
 st.set_page_config(
-    page_title="Multi Model RAG", 
+    page_title="Multi Model RAG | Enterprise Console", 
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# 2. Advanced Professional Dark Theme CSS
+# 2. Premium Enterprise Dark Theme CSS
 st.markdown("""
     <style>
-    /* Global App Background */
+    /* Import Premium San-Serif Font */
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+    /* Global Transitions & Background */
     .stApp {
-        background-color: #0e1117;
-    }
-
-    /* Professional Title Styling */
-    .main-title {
-        text-align: center;
-        font-family: 'Inter', -apple-system, sans-serif;
-        color: #f3f4f6;
-        padding: 40px 0px 10px 0px;
-        font-weight: 700;
-        letter-spacing: -0.02em;
-        text-transform: uppercase;
-    }
-    
-    .title-underline {
-        height: 1px;
-        background: linear-gradient(90deg, transparent, #374151, transparent);
-        margin-bottom: 40px;
-    }
-    
-    /* Sidebar Professional Styling */
-    section[data-testid="stSidebar"] {
-        background-color: #111827;
-        border-right: 1px solid #1f2937;
-    }
-    
-    section[data-testid="stSidebar"] .stMarkdown h2 {
-        color: #9ca3af;
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.15em;
-        margin-top: 25px;
-        border-bottom: 1px solid #1f2937;
-        padding-bottom: 8px;
-    }
-
-    /* Chat Container General Styling */
-    .chat-container {
-        padding: 24px;
-        border-radius: 4px;
-        margin-bottom: 20px;
-        border: 1px solid #1f2937;
+        background-color: #020617;
         font-family: 'Inter', sans-serif;
     }
-    
-    /* User Message Styling - Shady Black with Slate Accent */
-    .user-box {
-        background-color: #1f2937;
-        border-left: 3px solid #475569;
-    }
-    
-    /* AI Message Styling - Dark Charcoal with Deep Emerald Accent */
-    .ai-box {
-        background-color: #111827;
-        border-left: 3px solid #065f46;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-    }
-    
-    /* Metadata/Role Header Styling */
-    .role-header {
-        font-weight: 600;
-        color: #6b7280;
-        margin-bottom: 12px;
-        text-transform: uppercase;
-        font-size: 0.65rem;
-        letter-spacing: 0.2em;
-    }
-    
-    /* Text Content Styling */
-    .content-text {
-        color: #d1d5db;
-        line-height: 1.8;
-        font-size: 0.95rem;
+
+    /* Elite Glassmorphism Sidebar */
+    section[data-testid="stSidebar"] {
+        background-color: #0f172a;
+        border-right: 1px solid #1e293b;
+        padding: 2rem 1rem;
     }
 
-    /* Form Element Styling */
-    .stSelectbox label, .stFileUploader label {
-        color: #9ca3af !important;
-        font-size: 0.8rem !important;
+    /* Section Headers in Sidebar */
+    section[data-testid="stSidebar"] .stMarkdown h2 {
+        color: #64748b;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.2em;
+        font-weight: 700;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+    }
+
+    /* Main Title - Modern Minimalist */
+    .main-title {
+        text-align: center;
+        color: #f8fafc;
+        font-size: 2.5rem;
+        font-weight: 700;
+        letter-spacing: -0.05em;
+        margin-top: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .title-subtitle {
+        text-align: center;
+        color: #64748b;
+        font-size: 0.85rem;
+        letter-spacing: 0.3em;
+        text-transform: uppercase;
+        margin-bottom: 3rem;
+    }
+
+    /* Professional Message Containers */
+    .chat-container {
+        max-width: 850px;
+        margin: auto;
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    .user-box {
+        background-color: #1e293b;
+        border: 1px solid #334155;
+        border-left: 4px solid #38bdf8; /* Slate Blue */
+    }
+    
+    .ai-box {
+        background-color: #0f172a;
+        border: 1px solid #1e293b;
+        border-left: 4px solid #10b981; /* Emerald */
+        box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+    }
+    
+    .role-header {
+        font-weight: 600;
+        color: #94a3b8;
+        text-transform: uppercase;
+        font-size: 0.65rem;
+        letter-spacing: 0.15em;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .content-text {
+        color: #e2e8f0;
+        line-height: 1.8;
+        font-size: 1rem;
+        font-weight: 400;
+    }
+
+    /* Sidebar Button Overrides */
+    .stButton > button {
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid #1e293b;
+        background-color: #1e293b;
+        color: #f8fafc;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        transition: 0.2s;
+    }
+    
+    .stButton > button:hover {
+        background-color: #334155;
+        border-color: #38bdf8;
+    }
+
+    /* Custom Chat Input Focus */
+    .stChatInputContainer input {
+        border-radius: 12px !important;
+        background-color: #0f172a !important;
+        border: 1px solid #1e293b !important;
+        color: white !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 class='main-title'>Multi Model RAG</h1>", unsafe_allow_html=True)
-st.markdown("<div class='title-underline'></div>", unsafe_allow_html=True)
+# 3. Enhanced Title Section
+st.markdown("<div class='main-title'>MULTI MODEL RAG</div>", unsafe_allow_html=True)
+st.markdown("<div class='title-subtitle'>Enterprise Intelligence Console</div>", unsafe_allow_html=True)
 
-# 3. Session State Initialization
+# 4. Initialize Core Engine
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
     st.session_state.messages = []
-    st.session_state.chat_title = "New Chat"
+    st.session_state.chat_title = "New Session"
     st.session_state.db_ready = False
 
-# 4. Directory Management
 BASE_DIR = "temp_data"
 USER_SESSION_DIR = os.path.join(BASE_DIR, st.session_state.session_id)
 FILES_DIR = os.path.join(USER_SESSION_DIR, "files")
@@ -126,14 +155,12 @@ os.makedirs(DB_DIR, exist_ok=True)
 # 5. Helper Functions
 def generate_document(messages):
     doc = Document()
-    doc.add_heading('Formal Chat Conversation Log', 0)
+    doc.add_heading('Enterprise Intelligence Log', 0)
     for msg in messages:
-        role = "User" if msg["role"] == "user" else f"AI ({msg.get('model_name', 'System')})"
+        role = "CLIENT" if msg["role"] == "user" else f"AGENT ({msg.get('model_name', 'SYSTEM')})"
         p = doc.add_paragraph()
-        runner = p.add_run(f"{role}:")
-        runner.bold = True
+        p.add_run(f"{role}:").bold = True
         doc.add_paragraph(msg["content"])
-        doc.add_paragraph("-" * 20)
     buffer = io.BytesIO()
     doc.save(buffer)
     buffer.seek(0)
@@ -144,7 +171,7 @@ model_map = {
     "Llama 3.1 8B (Instant)": "llama-3.1-8b-instant",
     "Llama 4 (Scout 17B)": "meta-llama/llama-4-scout-17b-16e-instruct",
     "Qwen 3 32B": "qwen/qwen3-32b",
-    "GPT-OSS 20B)": "openai/gpt-oss-20b"
+    "GPT-OSS 20B": "openai/gpt-oss-20b"
 }
 
 @st.cache_resource
@@ -155,8 +182,8 @@ rag_engine = get_rag_engine()
 
 # 6. Sidebar Implementation
 with st.sidebar:
-    st.header("Session Control")
-    if st.button("Initialize New Chat", type="primary", use_container_width=True):
+    st.header("Control Center")
+    if st.button("Initialize New Session", type="primary"):
         if st.session_state.messages:
             st.session_state.chat_history.append({
                 "id": st.session_state.session_id,
@@ -166,21 +193,13 @@ with st.sidebar:
             })
         st.session_state.session_id = str(uuid.uuid4())
         st.session_state.messages = []
-        st.session_state.chat_title = "New Chat"
+        st.session_state.chat_title = "New Session"
         st.session_state.db_ready = False
         st.rerun()
 
-    st.markdown("---")
-    st.header("Chat Archive")
+    st.header("Archived Intelligence")
     for chat in reversed(st.session_state.chat_history):
-        if st.button(f"{chat['title']}", key=f"hist_{chat['id']}", use_container_width=True):
-            if st.session_state.messages and st.session_state.session_id != chat['id']:
-                 st.session_state.chat_history.append({
-                    "id": st.session_state.session_id,
-                    "title": st.session_state.chat_title,
-                    "messages": st.session_state.messages,
-                    "db_ready": st.session_state.db_ready
-                })
+        if st.button(f"{chat['title']}", key=f"hist_{chat['id']}"):
             st.session_state.session_id = chat['id']
             st.session_state.messages = chat['messages']
             st.session_state.chat_title = chat['title']
@@ -188,21 +207,16 @@ with st.sidebar:
             st.session_state.chat_history = [c for c in st.session_state.chat_history if c['id'] != chat['id']]
             st.rerun()
 
-    st.markdown("---")
-    st.header("System Settings")
-    selected_model_friendly = st.selectbox("Select Model Engine", list(model_map.keys()), index=0)
+    st.header("Model Parameters")
+    selected_model_friendly = st.selectbox("Intelligence Core", list(model_map.keys()), index=0)
     selected_model_id = model_map[selected_model_friendly]
     
-    st.header("Document Management")
-    uploaded_files = st.file_uploader(
-        "Upload Corporate Documents", 
-        accept_multiple_files=True, 
-        key=f"uploader_{st.session_state.session_id}"
-    )
+    st.header("Data Ingestion")
+    uploaded_files = st.file_uploader("Upload Knowledge Assets", accept_multiple_files=True, key=f"uploader_{st.session_state.session_id}")
     
-    if st.button("Process Source Data", use_container_width=True):
+    if st.button("Build Knowledge Index"):
         if uploaded_files:
-            with st.spinner("Analyzing and Indexing Data..."):
+            with st.spinner("Processing Corporate Assets..."):
                 if os.path.exists(FILES_DIR):
                     shutil.rmtree(FILES_DIR)
                 os.makedirs(FILES_DIR)
@@ -212,64 +226,43 @@ with st.sidebar:
                         f.write(file.getbuffer())
                 status = rag_engine.process_documents(FILES_DIR, DB_DIR)
                 if status == "Success":
-                    st.success("System Ready")
+                    st.success("Indexing Complete")
                     st.session_state.db_ready = True
                 else:
                     st.error(f"Error: {status}")
-        else:
-            st.warning("Upload documents to initialize.")
 
-    st.markdown("---")
-    st.header("Data Portability")
+    st.header("Governance")
     if st.session_state.messages:
         docx_file = generate_document(st.session_state.messages)
-        st.download_button(
-            label="Download Log (DOCX)",
-            data=docx_file,
-            file_name=f"formal_log_{st.session_state.session_id[:8]}.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            use_container_width=True
-        )
+        st.download_button("Export Session (DOCX)", data=docx_file, file_name=f"session_{st.session_state.session_id[:8]}.docx", mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document")
 
-# 7. Chat Display Logic
+# 7. Elite Chat Display Logic
 for msg in st.session_state.messages:
-    if msg["role"] == "user":
-        st.markdown(f"""
-            <div class="chat-container user-box">
-                <div class="role-header">User Inquiry</div>
-                <div class="content-text">{msg['content']}</div>
+    box_class = "user-box" if msg["role"] == "user" else "ai-box"
+    role_label = "CLIENT INQUIRY" if msg["role"] == "user" else f"AGENT RESPONSE | {msg.get('model_name', 'SYSTEM')}"
+    
+    st.markdown(f"""
+        <div class="chat-container {box_class}">
+            <div class="role-header">
+                <span>{role_label}</span>
             </div>
-        """, unsafe_allow_html=True)
-    else:
-        model_info = msg.get('model_name', 'System Response')
-        st.markdown(f"""
-            <div class="chat-container ai-box">
-                <div class="role-header">Response | {model_info}</div>
-                <div class="content-text">{msg['content']}</div>
-            </div>
-        """, unsafe_allow_html=True)
+            <div class="content-text">{msg['content']}</div>
+        </div>
+    """, unsafe_allow_html=True)
 
-# 8. Chat Input and Processing
-if prompt := st.chat_input("Enter query..."):
+# 8. Optimized Chat Input
+if prompt := st.chat_input("Input inquiry..."):
     if not st.session_state.messages:
-        st.session_state.chat_title = " ".join(prompt.split()[:5]) + "..."
+        st.session_state.chat_title = " ".join(prompt.split()[:4]) + "..."
     
     st.session_state.messages.append({"role": "user", "content": prompt})
     st.rerun()
 
 if st.session_state.messages and st.session_state.messages[-1]["role"] == "user":
     if st.session_state.get("db_ready"):
-        with st.spinner("Querying Intelligence Engine..."):
-            response = rag_engine.query(
-                query_text=st.session_state.messages[-1]["content"], 
-                db_path=DB_DIR, 
-                model_name=selected_model_id
-            )
-            st.session_state.messages.append({
-                "role": "assistant", 
-                "content": response,
-                "model_name": selected_model_friendly
-            })
+        with st.spinner(f"Consulting {selected_model_friendly}..."):
+            response = rag_engine.query(query_text=st.session_state.messages[-1]["content"], db_path=DB_DIR, model_name=selected_model_id)
+            st.session_state.messages.append({"role": "assistant", "content": response, "model_name": selected_model_friendly})
             st.rerun()
     else:
-        st.error("Document database not initialized.")
+        st.error("Knowledge base not initialized. Please ingestion documents via the control center.")
